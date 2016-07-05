@@ -60,10 +60,18 @@ mypassword_generate_by_passphrase(){
   local tip
   local result
   map='0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!"#$%&+*'
-  hash_command=sha${mypassword_length:-512}sum
   passphrase_limit=27
 
-  if [ -z "$($hash_command --help)" ]; then
+  hash_command=sha${mypassword_length:-512}sum
+  if [ -z "$(which $hash_command)" ]; then
+    hash_command=shasum
+    if [ -z "$(which $hash_command)" ]; then
+      echo "hash command not implemented. (sha${mypassword_length:-512}sum or shasum -a ${mypassword_length:-512})"
+      exit 1
+    fi
+    hash_command="shasum -a ${mypassword_length:-512}"
+  fi
+  if [ -z "$(echo 'test' | $hash_command)" ]; then
     exit 1
   fi
 
