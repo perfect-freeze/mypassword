@@ -27,18 +27,18 @@ mypassword_args(){
     esac
   done
 
-  mypassword_length=${mypassword_length:-8}
   mypassword_strategy=${mypassword_strategy:-random09azAZ}
 }
 mypassword_generate_random09azAZ(){
   local map
   map=0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ
 
-  </dev/urandom tr -dc "$map" | head -c$mypassword_length
+  </dev/urandom tr -dc "$map" | head -c${mypassword_length:-8}
   echo
 }
 mypassword_generate_by_passphrase(){
   local map
+  local hash_command
   local service_key
   local stretch_count
   local stretch_count_remain
@@ -59,9 +59,15 @@ mypassword_generate_by_passphrase(){
   local passphrase_collect
   local tip
   local result
-  local is_continue
   map='0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!"#$%&+*'
+  hash_command=sha${mypassword_length:-512}sum
   passphrase_limit=27
+
+  if [ -z "$($hash_command --help)" ]; then
+    exit 1
+  fi
+
+  echo "command: $hash_command"
 
   while [ -z "$passphrase_collect" ]; do
     passphrase_error=
@@ -136,9 +142,9 @@ mypassword_generate_by_passphrase(){
     stretch_count=
 
     while [ -z "$service_key" ]; do
-      read -p "enter service name: " service_key
+      read -p "service: " service_key
     done
-    read -p "enter stretch count: [0] " stretch_count
+    read -p "stretch: " stretch_count
     stretch_count=$(($stretch_count))
     if [ $stretch_count -lt 0 ]; then
       stretch_count=0
@@ -147,7 +153,7 @@ mypassword_generate_by_passphrase(){
     service_hash=$service_key
     stretch_count_remain=$(($stretch_count + 1))
     while [ $stretch_count_remain -gt 0 ]; do
-      service_hash=$(echo $service_hash | sha512sum)
+      service_hash=$(echo $service_hash | $hash_command)
       service_hash=${service_hash%% *}
 
       stretch_count_remain=$(($stretch_count_remain - 1))
@@ -160,20 +166,10 @@ mypassword_generate_by_passphrase(){
     mypassword_generate_by_passphrase_update "." $passphrase3
     mypassword_generate_by_passphrase_update "-" $passphrase4
 
-    echo
-    echo "password: ${result}="
-    echo "service:  '$service_key'"
-    echo "stretch:  $stretch_count"
+    echo "password: ${result}= ($service_key:$stretch_count)"
     echo
 
-    read -p "continue? [y] " is_continue
-    case "$is_continue" in
-      n* | N*)
-        ;;
-      *)
-        result=
-        ;;
-    esac
+    result=
   done
 }
 mypassword_generate_by_passphrase_update(){
