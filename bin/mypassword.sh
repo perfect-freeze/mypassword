@@ -59,6 +59,9 @@ mypassword_generate_by_passphrase(){
   local passphrase_collect
   local tip
   local result
+  local loop_count
+  local loop_confirm
+  local loop_break
   map='0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!"#$%&+*'
   passphrase_limit=27
 
@@ -145,7 +148,7 @@ mypassword_generate_by_passphrase(){
     fi
   done
 
-  while [ -z "$result" ]; do
+  while [ true ]; do
     service_key=
     stretch_count=
 
@@ -158,26 +161,45 @@ mypassword_generate_by_passphrase(){
       stretch_count=0
     fi
 
-    service_hash=$service_key
-    stretch_count_remain=$(($stretch_count + 1))
-    while [ $stretch_count_remain -gt 0 ]; do
-      service_hash=$(echo $service_hash | $hash_command)
-      service_hash=${service_hash%% *}
+    loop_break=
+    while [ -z "$loop_break" ]; do
+      loop_count=10
+      while [ $loop_count -gt 0 ]; do
+        result=
+        service_hash=$service_key
+        stretch_count_remain=$(($stretch_count + 1))
+        while [ $stretch_count_remain -gt 0 ]; do
+          service_hash=$(echo $service_hash | $hash_command)
+          service_hash=${service_hash%% *}
 
-      stretch_count_remain=$(($stretch_count_remain - 1))
+          stretch_count_remain=$(($stretch_count_remain - 1))
+        done
+
+        service_hash_remain=${service_hash}
+
+        mypassword_generate_by_passphrase_update "=" $passphrase1
+        mypassword_generate_by_passphrase_update "-" $passphrase2
+        mypassword_generate_by_passphrase_update "." $passphrase3
+        mypassword_generate_by_passphrase_update "-" $passphrase4
+
+        echo "password: ${result}= ($service_key:$stretch_count)"
+        loop_count=$(( $loop_count - 1 ))
+        stretch_count=$(( $stretch_count + 1 ))
+      done
+
+      read -p "continue? [Y/n] " loop_confirm
+      if [ -z "$loop_confirm" ]; then
+        loop_confirm=Y
+      fi
+      case $loop_confirm in
+        Y*|y*)
+          ;;
+        *)
+          loop_break=y
+          ;;
+      esac
     done
-
-    service_hash_remain=${service_hash}
-
-    mypassword_generate_by_passphrase_update "=" $passphrase1
-    mypassword_generate_by_passphrase_update "-" $passphrase2
-    mypassword_generate_by_passphrase_update "." $passphrase3
-    mypassword_generate_by_passphrase_update "-" $passphrase4
-
-    echo "password: ${result}= ($service_key:$stretch_count)"
     echo
-
-    result=
   done
 }
 mypassword_generate_by_passphrase_update(){
