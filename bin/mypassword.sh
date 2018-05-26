@@ -8,34 +8,26 @@ mypassword_main(){
   mypassword_generate_${mypassword_strategy}
 }
 mypassword_args(){
-  while getopts :l:s: OPT; do
+  mypassword_strategy=random09azAZ
+
+  while getopts :l:p OPT; do
     case $OPT in
       l)
         mypassword_length=$OPTARG
         ;;
-      s)
-        case $OPTARG in
-          random09azAZ | by_passphrase)
-            ;;
-          *)
-            echo "unknown strategy [$OPTARG]"
-            exit 1
-            ;;
-        esac
-        mypassword_strategy=$OPTARG
+      p)
+        mypassword_strategy=by_passphrase
         ;;
     esac
   done
-
-  mypassword_strategy=${mypassword_strategy:-random09azAZ}
 }
 mypassword_generate_random09azAZ(){
   local map
   map=0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ
 
-  </dev/urandom tr -dc "$map" | head -c${mypassword_length:-8}
-  echo
+  cat /dev/urandom | tr -dc "$map" | fold -w ${mypassword_length:-8} | head -1
 }
+
 mypassword_generate_by_passphrase(){
   local map
   local hash_command
