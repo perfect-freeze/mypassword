@@ -23,9 +23,15 @@ mypassword_args(){
 }
 mypassword_generate_random09azAZ(){
   local map
+  local length
+  local random
+
   map=0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ
 
-  </dev/urandom tr -dc "$map" | fold -w ${mypassword_length:-8} | head -1 2> /dev/null
+  length=${mypassword_length:-8}
+  random=$(($length * 10))
+
+  head -${random} /dev/urandom | tr -dc "$map" | fold -w ${length:-8} | head -1
 }
 
 mypassword_generate_by_passphrase(){
